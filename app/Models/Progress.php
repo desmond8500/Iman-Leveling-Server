@@ -12,7 +12,7 @@ class Progress extends Model
     protected $table = 'progress';
 
     /** Groupes de cases cochées (booléens) conservés pour chaque jour. */
-    public const FLAG_GROUPS = ['prayers', 'mosque', 'sunnah', 'adhkar'];
+    public const FLAG_GROUPS = ['prayers', 'mosque', 'sunnah', 'adhkar', 'fasting'];
 
     /** Groupe de compteurs de récitations (entiers positifs) conservé pour chaque jour. */
     public const COUNT_GROUP = 'counts';

@@ -14,6 +14,7 @@ function progressPayload(): array
                 'mosque' => ['fajr' => true],
                 'sunnah' => ['fajr-before' => true],
                 'adhkar' => ['morning:kursi' => true],
+                'fasting' => ['fast' => true],
             ],
             '2026-11-10' => ['prayers' => ['fajr' => false]],
         ],
@@ -47,6 +48,7 @@ it('enregistre puis relit la progression à l\'identique', function () {
         ->assertJsonPath('data.days.2026-11-09.prayers.dhuhr', true)
         ->assertJsonPath('data.days.2026-11-09.mosque.fajr', true)
         ->assertJsonPath('data.days.2026-11-09.adhkar.morning:kursi', true)
+        ->assertJsonPath('data.days.2026-11-09.fasting.fast', true)
         ->assertJsonPath('data.days.2026-11-10.prayers.fajr', false)
         ->assertJsonStructure(['updated_at']);
 });

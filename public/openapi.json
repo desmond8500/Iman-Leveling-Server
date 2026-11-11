@@ -139,7 +139,8 @@
           "prayers": { "type": "object", "additionalProperties": { "type": "boolean" }, "example": { "fajr": true, "dhuhr": true } },
           "mosque": { "type": "object", "additionalProperties": { "type": "boolean" }, "example": { "fajr": true } },
           "sunnah": { "type": "object", "additionalProperties": { "type": "boolean" }, "example": { "fajr-before": true } },
-          "adhkar": { "type": "object", "additionalProperties": { "type": "boolean" }, "example": { "morning:kursi": true } }
+          "adhkar": { "type": "object", "additionalProperties": { "type": "boolean" }, "example": { "morning:kursi": true } },
+          "fasting": { "type": "object", "additionalProperties": { "type": "boolean" }, "description": "Jeûne du jour : { \"fast\": true }.", "example": { "fast": true } }
         }
       },
       "ProgressData": {
