@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Api;
 
+use App\Models\Progress;
 use Closure;
 use Illuminate\Foundation\Http\FormRequest;
 
@@ -42,7 +43,7 @@ class UpdateProgressRequest extends FormRequest
     }
 
     /**
-     * Clés au format AAAA-MM-JJ ; chaque jour est une table de groupes de cases booléennes.
+     * Clés au format AAAA-MM-JJ ; chaque jour est une table de groupes (cases booléennes, ou compteurs entiers pour `counts`).
      */
     private function daysAreWellFormed(): Closure
     {
@@ -54,9 +55,16 @@ class UpdateProgressRequest extends FormRequest
                     return;
                 }
 
-                foreach ($day as $group => $flags) {
-                    if (! is_array($flags) || in_array(false, array_map(is_bool(...), $flags), true)) {
-                        $fail("Les cases du jour {$date} ({$group}) doivent être des booléens.");
+                foreach ($day as $group => $values) {
+                    $isCounts = $group === Progress::COUNT_GROUP;
+                    $check = $isCounts
+                        ? fn ($value) => is_int($value) && $value >= 0 && $value <= Progress::MAX_COUNT
+                        : is_bool(...);
+
+                    if (! is_array($values) || in_array(false, array_map($check, $values), true)) {
+                        $fail($isCounts
+                            ? "Les compteurs du jour {$date} doivent être des entiers positifs."
+                            : "Les cases du jour {$date} ({$group}) doivent être des booléens.");
 
                         return;
                     }

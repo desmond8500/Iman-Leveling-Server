@@ -108,3 +108,21 @@ it('supprime les données avec le compte', function () {
 
     expect(Progress::count())->toBe(0)->and(ApiToken::count())->toBe(0);
 });
+
+it('enregistre les compteurs de récitations et refuse les valeurs invalides', function () {
+    $payload = ['version' => 1, 'days' => ['2026-11-09' => ['prayers' => [], 'counts' => ['morning:kursi' => 3, 'zero' => 0]]]];
+
+    $this->withToken($this->token)->putJson('/api/progress', ['data' => $payload])->assertOk();
+
+    $this->withToken($this->token)->getJson('/api/progress')
+        ->assertJsonPath('data.days.2026-11-09.counts.morning:kursi', 3)
+        ->assertJsonMissingPath('data.days.2026-11-09.counts.zero');
+
+    $bad = ['version' => 1, 'days' => ['2026-11-09' => ['prayers' => [], 'counts' => ['x' => 'beaucoup']]]];
+    $this->withToken($this->token)->putJson('/api/progress', ['data' => $bad])
+        ->assertUnprocessable()->assertJsonValidationErrors('data.days');
+
+    $negative = ['version' => 1, 'days' => ['2026-11-09' => ['prayers' => [], 'counts' => ['x' => -2]]]];
+    $this->withToken($this->token)->putJson('/api/progress', ['data' => $negative])
+        ->assertUnprocessable();
+});
