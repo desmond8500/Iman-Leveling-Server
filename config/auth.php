@@ -42,6 +42,12 @@ return [
             'driver' => 'session',
             'provider' => 'users',
         ],
+
+        // Jeton porteur pour l'application mobile (voir AppServiceProvider).
+        'api' => [
+            'driver' => 'api-token',
+            'provider' => 'users',
+        ],
     ],
 
     /*
