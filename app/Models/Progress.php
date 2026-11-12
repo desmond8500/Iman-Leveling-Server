@@ -11,8 +11,16 @@ class Progress extends Model
 {
     protected $table = 'progress';
 
-    /** Groupes de cases cochées conservés pour chaque jour. */
-    public const DAY_GROUPS = ['prayers', 'mosque', 'sunnah', 'adhkar'];
+    /** Groupes de cases cochées (booléens) conservés pour chaque jour. */
+    public const FLAG_GROUPS = ['prayers', 'mosque', 'sunnah', 'adhkar', 'fasting'];
+
+    /** Groupe de compteurs de récitations (entiers positifs) conservé pour chaque jour. */
+    public const COUNT_GROUP = 'counts';
+
+    public const MAX_COUNT = 100000;
+
+    /** Tous les groupes conservés pour chaque jour. */
+    public const DAY_GROUPS = [...self::FLAG_GROUPS, self::COUNT_GROUP];
 
     protected function casts(): array
     {
@@ -42,11 +50,17 @@ class Progress extends Model
             }
 
             $record = ['prayers' => []];
-            foreach (self::DAY_GROUPS as $group) {
-                if (! isset($day[$group]) || ! is_array($day[$group])) {
-                    continue;
+            foreach (self::FLAG_GROUPS as $group) {
+                if (isset($day[$group]) && is_array($day[$group])) {
+                    $record[$group] = array_filter($day[$group], is_bool(...));
                 }
-                $record[$group] = array_filter($day[$group], is_bool(...));
+            }
+
+            if (isset($day[self::COUNT_GROUP]) && is_array($day[self::COUNT_GROUP])) {
+                $record[self::COUNT_GROUP] = array_filter(
+                    $day[self::COUNT_GROUP],
+                    fn ($value) => is_int($value) && $value > 0 && $value <= self::MAX_COUNT,
+                );
             }
 
             $days[$date] = $record;

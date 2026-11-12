@@ -1,0 +1,183 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Iman Leveling — API",
+    "version": "1.0.0",
+    "description": "API de l'application mobile Iman Leveling : comptes et sauvegarde de la progression.\n\nAuthentification par jeton porteur : `Authorization: Bearer <token>`. Le jeton est renvoyé par `register` et `login` ; il y en a un par appareil."
+  },
+  "servers": [{ "url": "/api", "description": "Serveur courant" }],
+  "tags": [
+    { "name": "Authentification" },
+    { "name": "Progression" }
+  ],
+  "paths": {
+    "/auth/register": {
+      "post": {
+        "tags": ["Authentification"],
+        "summary": "Créer un compte",
+        "description": "Limité à 10 essais par minute (par IP et e-mail).",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/RegisterRequest" } } }
+        },
+        "responses": {
+          "201": { "description": "Compte créé", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/AuthResponse" } } } },
+          "422": { "$ref": "#/components/responses/ValidationError" },
+          "429": { "$ref": "#/components/responses/TooManyRequests" }
+        }
+      }
+    },
+    "/auth/login": {
+      "post": {
+        "tags": ["Authentification"],
+        "summary": "Se connecter",
+        "description": "Limité à 10 essais par minute (par IP et e-mail). Un compte inconnu et un mauvais mot de passe renvoient le même message.",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/LoginRequest" } } }
+        },
+        "responses": {
+          "200": { "description": "Connecté", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/AuthResponse" } } } },
+          "422": { "$ref": "#/components/responses/ValidationError" },
+          "429": { "$ref": "#/components/responses/TooManyRequests" }
+        }
+      }
+    },
+    "/auth/logout": {
+      "post": {
+        "tags": ["Authentification"],
+        "summary": "Se déconnecter",
+        "description": "Révoque uniquement le jeton utilisé ; les autres appareils restent connectés.",
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "204": { "description": "Jeton révoqué" },
+          "401": { "$ref": "#/components/responses/Unauthenticated" }
+        }
+      }
+    },
+    "/progress": {
+      "get": {
+        "tags": ["Progression"],
+        "summary": "Lire la progression du compte",
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": { "description": "Progression enregistrée", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ProgressResponse" } } } },
+          "401": { "$ref": "#/components/responses/Unauthenticated" },
+          "404": { "description": "Aucune progression enregistrée (cas normal à la première synchronisation)", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Message" } } } }
+        }
+      },
+      "put": {
+        "tags": ["Progression"],
+        "summary": "Remplacer la progression du compte",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["data"],
+                "properties": { "data": { "$ref": "#/components/schemas/ProgressData" } }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Progression enregistrée",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": { "updated_at": { "type": "string", "format": "date-time" } }
+                }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/Unauthenticated" },
+          "422": { "$ref": "#/components/responses/ValidationError" }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": { "type": "http", "scheme": "bearer" }
+    },
+    "schemas": {
+      "RegisterRequest": {
+        "type": "object",
+        "required": ["name", "email", "password"],
+        "properties": {
+          "name": { "type": "string", "maxLength": 255, "example": "Aïcha" },
+          "email": { "type": "string", "format": "email", "example": "aicha@example.com" },
+          "password": { "type": "string", "minLength": 8, "format": "password" }
+        }
+      },
+      "LoginRequest": {
+        "type": "object",
+        "required": ["email", "password"],
+        "properties": {
+          "email": { "type": "string", "format": "email" },
+          "password": { "type": "string", "format": "password" }
+        }
+      },
+      "AuthResponse": {
+        "type": "object",
+        "properties": {
+          "token": { "type": "string", "description": "Jeton porteur (affiché une seule fois)" },
+          "user": {
+            "type": "object",
+            "properties": { "name": { "type": "string" }, "email": { "type": "string", "format": "email" } }
+          }
+        }
+      },
+      "DayRecord": {
+        "type": "object",
+        "description": "Cases cochées d'un jour, par groupe. Seuls les booléens sont conservés.",
+        "properties": {
+          "prayers": { "type": "object", "additionalProperties": { "type": "boolean" }, "example": { "fajr": true, "dhuhr": true } },
+          "mosque": { "type": "object", "additionalProperties": { "type": "boolean" }, "example": { "fajr": true } },
+          "sunnah": { "type": "object", "additionalProperties": { "type": "boolean" }, "example": { "fajr-before": true } },
+          "adhkar": { "type": "object", "additionalProperties": { "type": "boolean" }, "example": { "morning:kursi": true } },
+          "fasting": { "type": "object", "additionalProperties": { "type": "boolean" }, "description": "Jeûne du jour : { \"fast\": true }.", "example": { "fast": true } }
+        }
+      },
+      "ProgressData": {
+        "type": "object",
+        "required": ["days"],
+        "properties": {
+          "version": { "type": "integer", "enum": [1] },
+          "days": {
+            "type": "object",
+            "description": "Clé = date locale AAAA-MM-JJ",
+            "additionalProperties": { "$ref": "#/components/schemas/DayRecord" }
+          }
+        }
+      },
+      "ProgressResponse": {
+        "type": "object",
+        "properties": {
+          "data": { "$ref": "#/components/schemas/ProgressData" },
+          "updated_at": { "type": "string", "format": "date-time", "nullable": true }
+        }
+      },
+      "Message": {
+        "type": "object",
+        "properties": { "message": { "type": "string" } }
+      },
+      "ValidationErrorBody": {
+        "type": "object",
+        "properties": {
+          "message": { "type": "string" },
+          "errors": { "type": "object", "additionalProperties": { "type": "array", "items": { "type": "string" } } }
+        }
+      }
+    },
+    "responses": {
+      "Unauthenticated": { "description": "Jeton absent, invalide ou révoqué", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Message" } } } },
+      "ValidationError": { "description": "Données invalides", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ValidationErrorBody" } } } },
+      "TooManyRequests": { "description": "Trop de tentatives, réessayer plus tard", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Message" } } } }
+    }
+  }
+}
